@@ -49,7 +49,7 @@ class ASEOptimizationRunner(BaseOptimizationRunner):
         self.load_config_with_defaults(config)
 
     def load_config_with_defaults(self, config):
-        from optimization_options import ASEOptOpts
+        from src.optimization_options import ASEOptOpts
         self.options = ASEOptOpts(**config)
     
     def run(self):
