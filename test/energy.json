@@ -1,0 +1,13 @@
+{
+    "method": 
+    { 
+        "type": "energy",
+        "options": 
+        {
+            "order": 2
+        }
+    },
+    "atoms": "test/atoms.npz",
+    "coordinates": "test/coordinates.npz",
+    "output_dir": "./"
+}

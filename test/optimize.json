@@ -1,0 +1,23 @@
+{
+    "method": 
+    { 
+        "type": "optimize",
+        "options": 
+        {
+            "optimizer": 
+            {
+                "type": "ase", 
+                "options": 
+                {
+                    "charge": 1,
+                    "spin": 0,
+                    "fmax": 0.02,
+                    "steps": 5
+                }
+            }
+        }
+    },
+    "atoms": "test/atoms.npz",
+    "coordinates": "test/coordinates.npz",
+    "output_dir": "./"
+}
