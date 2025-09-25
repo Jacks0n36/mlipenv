@@ -42,23 +42,6 @@ class BaseOptimizationRunner:
         ...
     # option to write .trj and .log files to a specified place
 
-# this is ugly!
-DEFAULT_CHARGE = 0
-DEFAULT_SPIN = 1
-DEFAULT_FMAX = 0.02
-DEFAULT_OUT_PATH = "./"
-DEFAULT_OUT_FILE = "opt.npz"
-DEFAULT_RETURN = "all"
-DEFAULT_MAX_STEPS = 20
-DEFAULT_CONFIG = {
-    "charge": DEFAULT_CHARGE,
-    "spin": DEFAULT_SPIN,
-    "fmax": DEFAULT_FMAX,
-    "steps": DEFAULT_MAX_STEPS,
-    "out_path": DEFAULT_OUT_PATH,
-    "out_file": DEFAULT_OUT_FILE,
-    "return_info": DEFAULT_RETURN,
-}
 
 class ASEOptimizationRunner(BaseOptimizationRunner):
     def __init__(self, atoms, coordinates, config):
@@ -66,10 +49,8 @@ class ASEOptimizationRunner(BaseOptimizationRunner):
         self.load_config_with_defaults(config)
 
     def load_config_with_defaults(self, config):
-        self.charge = config["charge"] if "charge" in config else DEFAULT_CONFIG["charge"]
-        self.spin = config["spin"] if "spin" in config else DEFAULT_CONFIG["spin"]
-        self.fmax = config["fmax"] if "fmax" in config else DEFAULT_CONFIG["fmax"]
-        self.steps = config["steps"] if "steps" in config else DEFAULT_CONFIG["steps"]
+        from optimization_options import ASEOptOpts
+        self.options = ASEOptOpts(**config)
     
     def run(self):
         optimized_atoms = [self.run_opt(a, c) for a, c in zip(self.atoms, self.coordinates)]
@@ -86,19 +67,17 @@ class ASEOptimizationRunner(BaseOptimizationRunner):
 
     def run_opt(self, atom_symbols, coordinates):
         atoms = Atoms(symbols=atom_symbols, positions=coordinates)
-        atoms.info["charge"] = self.charge
-        atoms.info["spin"] = self.spin
+        atoms.info["charge"] = self.options.charge
+        atoms.info["spin"] = self.options.spin
         calc = get_calc()
-        atoms = self._run_opt(atoms, calc)
+        atoms.calc = calc
+        atoms = self._run_opt(atoms)
         return atoms
     
-    def _run_opt(self, atoms, calc):
-        fmax = self.fmax
-        steps = self.steps
+    def _run_opt(self, atoms):
         from ase.optimize import BFGS
-        atoms.calc = calc
         opt = BFGS(atoms)
-        opt.run(fmax=fmax, steps=steps)
+        opt.run(fmax=self.options.fmax, steps=self.options.steps)
         return atoms
 
 
