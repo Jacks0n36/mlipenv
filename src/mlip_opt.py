@@ -31,8 +31,8 @@ def load_config(config_bundle):
         else:
             try:
                 config = json.loads(config_bundle)
-            except:
-                raise NotImplementedError("Cannot load from string that is neither a valid path to nor formatted JSON itself.")
+            except Exception as e:
+                raise NotImplementedError("Cannot load from string that is neither a valid path to nor formatted JSON itself.") from e
     
     elif isinstance(config_bundle, dict):
         config = config_bundle

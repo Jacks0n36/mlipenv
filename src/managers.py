@@ -26,15 +26,15 @@ class BaseManager:
     def load_coordinates(self, coordinates_bundle):
         try:
             coordinates = self._load_parameter(coordinates_bundle)
-        except:
-            raise NotImplementedError(f"Could not load coordinates from: {coordinates_bundle}")
+        except Exception as e:
+            raise NotImplementedError(f"Could not load coordinates from: {coordinates_bundle}") from e
         return coordinates
     
     def load_atoms(self, atoms_bundle):
         try:
             coordinates = self._load_parameter(atoms_bundle)
-        except:
-            raise NotImplementedError(f"Could not load atoms from: {atoms_bundle}")
+        except Exception as e:
+            raise NotImplementedError(f"Could not load atoms from: {atoms_bundle}") from e
         return coordinates
         
     @abc.abstractmethod
