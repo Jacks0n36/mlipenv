@@ -56,6 +56,3 @@ def call_to_mlip_server(config_bundle):
     config = load_config(config_bundle)
     runner = get_runner_for_method(config)
     runner.run()
-
-
-call_to_mlip_server("test/optimize.json")
