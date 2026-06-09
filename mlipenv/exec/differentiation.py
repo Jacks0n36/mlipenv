@@ -2,7 +2,7 @@ import logging
 
 import torch.autograd
 
-from .calculators import
+from .calculators import CALCULATOR_ALIASES
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,14 @@ def register_differentiator(name, differentiator=None):
         def register(differentiator):
             return register_differentiator(name, differentiator)
         return register
+    
+def resolve_differentiator_alias(key):
+    if isinstance(key, str):
+        return differentiators[key]
+    else:
+        for alias, calc in CALCULATOR_ALIASES.items():
+            if isinstance(key, calc):
+                return alias
 
 def get_higher_derivatives(obj, calculator, device, order):
     derivatives = differentiators[resolve_differentiator_alias(calculator)](obj, calculator, device, order)

@@ -293,7 +293,7 @@ class MLIPHandler(NodeCommHandler):
     def evaluate(self, config=None, method=None, *args):
         from mlipenv.exec.manager import execute_mlip_job
 
-        if not len(args):
+        if not len(args) and config is None:
             response = {
                 "stdout": "",
                 "stderr": "no args provided"
