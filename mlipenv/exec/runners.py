@@ -112,10 +112,11 @@ class EnergyRunner(NPZBatchExportRunner):
                             calculator_options=None,
                             **kwargs
                             ):
-        calc_type = os.environ.get("CALCULATOR", "").lower()
+        mlip_vendor = os.environ.get("CALCULATOR", "").lower()
+        self.mlip_vendor = mlip_vendor
         self.energy_options = get_configuration("energy")(**energy_options)
         try:
-            calc_configuration_cls = get_configuration(calc_type)
+            calc_configuration_cls = get_configuration(mlip_vendor)
         except:
             calc_configuration_cls = get_configuration("calculator")
         if not calculator_options:
@@ -144,7 +145,12 @@ class EnergyRunner(NPZBatchExportRunner):
             derivative_dict["1"] = np.array(obj.get_forces())
         else:
             from mlipenv.exec.differentiation import get_higher_derivatives
-            derivative_dict = get_higher_derivatives(obj, calculator=obj.calc, device=self.calculator_options.device, order=self.energy_options.order)
+            derivative_dict = get_higher_derivatives(
+                obj,
+                mlip_vendor=self.mlip_vendor,
+                calculator=obj.calc, 
+                device=self.calculator_options.device, 
+                order=self.energy_options.order)
         self.derivative_dict = derivative_dict
         return list(derivative_dict.values())
         

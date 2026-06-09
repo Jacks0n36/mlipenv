@@ -42,7 +42,7 @@ def configuration_builder(method,
     get_config_builder(method)(config=config, **kwargs)
     return config
 
-def find_file(root, target):
+def find_file(target, root):
     for dirpath, dirs, files in os.walk(root):
         if target in files:
             return os.path.join(dirpath, target)

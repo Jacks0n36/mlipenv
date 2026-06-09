@@ -227,7 +227,7 @@ class NodeCommHandler(socketserver.StreamRequestHandler):
         cls.set_server(None)
 
     @classmethod
-    def stop_server(cls, args):
+    def stop_server(cls):
         threading.Thread(target=cls._shutdown_server).start()
         return {
             "stdout": "shutting down server...",
@@ -338,7 +338,7 @@ class AsyncMLIPHandler(NodeCommHandler):
         }
 
     @register_as_async
-    def evaluate(self, config=None, method=None, *args):
+    def evaluate(self, config=None, method=None):
         if config is None:
             response = {
                 "stdout": "",
@@ -359,7 +359,7 @@ class AsyncMLIPHandler(NodeCommHandler):
                 }
         return response 
     
-    def check_job_status(self, job_id=None, *args):
+    def check_job_status(self, job_id=None):
         try:
             job_info = self.server.scheduler.query_job(job_id)
 
@@ -376,7 +376,7 @@ class AsyncMLIPHandler(NodeCommHandler):
             }
         return response
     
-    def cancel_job(self, job_id, *args):
+    def cancel_job(self, job_id):
         try:
             response = self.server.scheduler.cancel_job(job_id)
             response = {

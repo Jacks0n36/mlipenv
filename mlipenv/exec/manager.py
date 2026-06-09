@@ -6,7 +6,7 @@ from mlipenv.exec.util import load_config, build_base_config
 def configure_logger(base_config):
     log_file = base_config.log_file
     output_dir = base_config.output_dir
-    log_fpath = log_file if log_file is None else os.path.join(output_dir, log_file)
+    log_fpath = os.path.join(output_dir, log_file) if log_file else None
     logging.basicConfig(
         filename=log_fpath,
         level=logging.INFO,

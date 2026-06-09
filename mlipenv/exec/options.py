@@ -30,6 +30,11 @@ class AIMNetCalculatorConfiguration(CalculatorConfiguration):
     model_path: str
 
 @dataclass
+@register_configuration("orbmat")
+class OrbMatCalculatorConfiguration(CalculatorConfiguration):
+    module: str
+
+@dataclass
 @register_configuration("base")
 class BaseConfiguration:
     method: str
