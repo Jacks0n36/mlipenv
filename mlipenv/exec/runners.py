@@ -22,13 +22,30 @@ def register_runner(key, runner_factory=None):
         return register
     else:
         RUNNER_REGISTRY[key] = runner_factory
+        return runner_factory
 
 def get_runner(key):
-    return RUNNER_REGISTRY[key]
+    if isinstance(key, str):
+        return RUNNER_REGISTRY[key]
+    else:
+        return RUNNER_REGISTRY.get(key, key)
 
-class BaseRunner:
+class BaseRunner(metaclass=abc.ABCMeta):
+    def __init__(self, base_config, **kwargs):
+        self.config = base_config
+
+    @abc.abstractmethod
+    def run(self):
+        ...
+
+    @abc.abstractmethod
+    def export_results(self):
+        ...
+
+class NPZBatchExportRunner(BaseRunner):
     debug = os.environ.get("DEBUG", "").lower() == "true"
     def __init__(self, base_config, **kwargs):
+        super().__init__(base_config)
         self.atoms = load_multidim_parameter(base_config.atoms)
         self.coordinates = load_multidim_parameter(base_config.coordinates)
         self.charge = self.load_charge(base_config.charge)
@@ -73,19 +90,15 @@ class BaseRunner:
         return get_calc(**asdict(self.calculator_options))
 
     @abc.abstractmethod
-    def result_getters():
+    def result_getters(self):
         ...
     
     @abc.abstractmethod
     def get_output_with_defaults(self):
         ...
 
-    @abc.abstractmethod
-    def run(self):
-        ...
-
 @register_runner("energy")
-class EnergyRunner(BaseRunner):
+class EnergyRunner(NPZBatchExportRunner):
     def __init__(self, base_config, **kwargs):
         super().__init__(base_config)
         self.load_energy_configs(**kwargs)
@@ -136,7 +149,7 @@ class EnergyRunner(BaseRunner):
         return list(derivative_dict.values())
         
 
-class BaseOptimizationRunner(BaseRunner):
+class BaseOptimizationRunner(NPZBatchExportRunner):
     def __init__(self, base_config, **kwargs):
         super().__init__(base_config, **kwargs)
         self.load_runner_configs(**kwargs)
@@ -239,7 +252,8 @@ class SciPyOptimizationRunner(BaseOptimizationRunner):
 class BetterOptimizationRunner(BaseOptimizationRunner):
     def __init__(self, base_config, **kwargs):
         if not os.environ.get("CALCULATOR", "").lower() == "fairchem":
-            raise NotImplementedError(f"BetterOptimizationRunner is not currently written for {os.environ.get('CALCULATOR', '')} calculator.")
+            calc = os.environ.get('CALCULATOR', '')
+            raise NotImplementedError(f"BetterOptimizationRunner is not currently written for {calc} calculator.")
         super().__init__(base_config, **kwargs)
 
     def step_optimization(self, optimizers, predictor):
@@ -304,3 +318,67 @@ class BetterOptimizationRunner(BaseOptimizationRunner):
         for optimizer in self.results:
             optimizer.write_trajectory(self.output_dir)
             optimizer.write_log(self.output_dir)
+
+@register_runner("psience")
+class PsienceRunner(BaseRunner):
+    def __init__(self, base_config, *, tasks, output_file, order=None, **kwargs):
+        super().__init__(base_config)
+        if isinstance(tasks, str):
+            tasks = [tasks]
+        self.tasks = tasks
+        self.mol_kwargs = kwargs
+        self._results = []
+        self._atoms = base_config.atoms
+        self._coords = np.asanyarray(base_config.coordinates)
+        self.order = order
+        self.output_file = output_file
+        self._ref_mol = None
+        self._evaluators = {}
+
+    def load_ref_mol(self):
+        from Psience.Molecools import Molecule
+        from McUtils.Data import UnitsData
+
+        if self._ref_mol is None:
+            coords = self._coords * UnitsData.convert("BohrRadius", "Angstroms")
+            if coords.ndim > 2:
+                coords = coords.reshape((-1,) + coords.shape[-2:])[0]
+            atoms = self._atoms
+            if not isinstance(atoms[0], (str, np.str_, int, np.integer)):
+                atoms = atoms[0]
+            self._ref_mol = Molecule(
+                atoms,
+                coords,
+                **self.mol_kwargs
+            )
+        return self._ref_mol
+
+    def load_evaluator(self, key):
+        ref = self.load_ref_mol()
+        if key == 'energy':
+            return ref.get_energy_function()
+        elif key == 'charge':
+            return ref.get_charge_function()
+        elif key == 'dipole':
+            return ref.get_dipole_function()
+        elif key == 'polarizability':
+            return ref.get_dipole_polarizability_function()
+        else:
+            raise ValueError(f"Unknown evaluator {key}")
+
+    def dispatch_on_task(self, task):
+        if task == 'energy':
+            return self.load_evaluator('energy')(self._coords, order=self.order)
+        else:
+            raise ValueError(f"Unknown task {task}")
+
+    def run(self):
+        if len(self._results) == 0:
+            for task in self.tasks:
+                subres = self.dispatch_on_task(task)
+                self._results.append(subres)
+
+    def export_results(self):
+        from McUtils.Scaffolding import write_flat_tree
+        write_flat_tree(self.output_file, {'results': self._results})
+        return {'output_file': self.output_file}
